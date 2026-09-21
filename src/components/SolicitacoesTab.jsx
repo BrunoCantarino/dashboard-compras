@@ -12,8 +12,74 @@ export default function SolicitacoesTab({ rawData, onClear }) {
     textoBusca: ''
   });
 
+  const [ordenacao, setOrdenacao] = useState('padrao');
+
   const solicitantesUnicos = useMemo(() => getSolicitantesUnicos(dados), [dados]);
   const dadosFiltrados = useMemo(() => filtrarSolicitacoes(dados, filtros), [dados, filtros]);
+
+  function ordenarDados(dados) {
+    const copia = [...dados];
+
+    switch (ordenacao) {
+      case 'padrao':
+        return copia; // Sem ordenação
+
+      case 'data-recente':
+        return copia.sort((a, b) => {
+          const [diaA, mesA, anoA] = a.dataNecessaria.split('/').map(Number);
+          const [diaB, mesB, anoB] = b.dataNecessaria.split('/').map(Number);
+          const dateA = new Date(anoA, mesA - 1, diaA);
+          const dateB = new Date(anoB, mesB - 1, diaB);
+          return dateB - dateA;
+        });
+
+      case 'data-antiga':
+        return copia.sort((a, b) => {
+          const [diaA, mesA, anoA] = a.dataNecessaria.split('/').map(Number);
+          const [diaB, mesB, anoB] = b.dataNecessaria.split('/').map(Number);
+          const dateA = new Date(anoA, mesA - 1, diaA);
+          const dateB = new Date(anoB, mesB - 1, diaB);
+          return dateA - dateB;
+        });
+
+      case 'qtd-maior':
+        return copia.sort((a, b) => b.quantidade - a.quantidade);
+
+      case 'qtd-menor':
+        return copia.sort((a, b) => a.quantidade - b.quantidade);
+
+      case 'desc-az':
+        return copia.sort((a, b) =>
+          a.descricao.localeCompare(b.descricao, 'pt-BR', { sensitivity: 'base' })
+        );
+
+      case 'desc-za':
+        return copia.sort((a, b) =>
+          b.descricao.localeCompare(a.descricao, 'pt-BR', { sensitivity: 'base' })
+        );
+
+      case 'solicitante-az':
+        return copia.sort((a, b) =>
+          a.solicitante.localeCompare(b.solicitante, 'pt-BR', { sensitivity: 'base' })
+        );
+
+      case 'solicitante-za':
+        return copia.sort((a, b) =>
+          b.solicitante.localeCompare(a.solicitante, 'pt-BR', { sensitivity: 'base' })
+        );
+
+      case 'num-maior':
+        return copia.sort((a, b) => b.numeroSolicitacao - a.numeroSolicitacao);
+
+      case 'num-menor':
+        return copia.sort((a, b) => a.numeroSolicitacao - b.numeroSolicitacao);
+
+      default:
+        return copia;
+    }
+  }
+
+  const dadosOrdenados = useMemo(() => ordenarDados(dadosFiltrados), [dadosFiltrados, ordenacao]);
 
   function handleFiltroChange(campo, valor) {
     setFiltros(prev => ({
@@ -137,8 +203,30 @@ export default function SolicitacoesTab({ rawData, onClear }) {
             </div>
             <div className="stat-item">
               <span className="stat-label">Exibindo:</span>
-              <span className="stat-value">{dadosFiltrados.length}</span>
+              <span className="stat-value">{dadosOrdenados.length}</span>
             </div>
+          </div>
+
+          <div className="sort-section">
+            <label htmlFor="sort-select">Ordenar por:</label>
+            <select
+              id="sort-select"
+              value={ordenacao}
+              onChange={(e) => setOrdenacao(e.target.value)}
+              className="sort-select"
+            >
+              <option value="padrao">Padrão</option>
+              <option value="data-recente">Data — mais recente → mais antiga</option>
+              <option value="data-antiga">Data — mais antiga → mais recente</option>
+              <option value="qtd-maior">Quantidade — maior → menor</option>
+              <option value="qtd-menor">Quantidade — menor → maior</option>
+              <option value="desc-az">Descrição — A → Z</option>
+              <option value="desc-za">Descrição — Z → A</option>
+              <option value="solicitante-az">Solicitante — A → Z</option>
+              <option value="solicitante-za">Solicitante — Z → A</option>
+              <option value="num-maior">Nº da solicitação — maior → menor</option>
+              <option value="num-menor">Nº da solicitação — menor → maior</option>
+            </select>
           </div>
 
           <div className="table-wrapper">
@@ -154,8 +242,8 @@ export default function SolicitacoesTab({ rawData, onClear }) {
                 </tr>
               </thead>
               <tbody>
-                {dadosFiltrados.length > 0 ? (
-                  dadosFiltrados.map(item => (
+                {dadosOrdenados.length > 0 ? (
+                  dadosOrdenados.map(item => (
                     <tr key={item.id}>
                       <td className="code">{item.numeroSolicitacao}</td>
                       <td>{item.dataNecessaria}</td>
